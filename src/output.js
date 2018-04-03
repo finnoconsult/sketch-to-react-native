@@ -1,27 +1,27 @@
 
 const { nativeAttrs } = require('./attributes');
 
- 
+
 // Note: the spacing (indentation) is important (even though it looks weird)
 // for everything in the ``.
 const generateStyleSheetString = (componentStyles) => {
-  return Object.keys(componentStyles).map((key) => {
+  return `${Object.keys(componentStyles).map((key) => {
     const keyStyles = Object.keys(componentStyles[key]).map((styleKey) => {
       const styleString = componentStyles[key][styleKey]
       return `    ${styleKey}: ${styleString}`
     }).join(",\n");
       return `  ${key}: {
-${keyStyles}
+${keyStyles}${Object.keys(componentStyles[key]).length>0 ? ',' : ''}
   }`
-  }).join(",\n")
+}).join(",\n")}${(Object.keys(componentStyles).length>0 ? ',' : '')}`
 }
 
 
 const generateComponentStrings = ({
-  flatEles, 
-  idDims, 
-  childParent, 
-  jsObjs, 
+  flatEles,
+  idDims,
+  childParent,
+  jsObjs,
   imagesDir
 }) => {
   let imports = [];
@@ -47,10 +47,10 @@ const generateComponentStrings = ({
         if(aj.marginTop) styleAttrs.push(`marginTop: '${aj.marginTop}'`)
         if(aj.marginBottom) styleAttrs.push(`marginBottom: '${aj.marginBottom}'`)
       }
-      return `${ele.spaces}<View style={{${styleAttrs.join(", ")}}}${ele.single ? ' /' : ''}>`
+      return `${ele.spaces}<View style={{ ${styleAttrs.join(", ")} }}${ele.single ? ' /' : ''}>`
     }
     if(ele.id == 'column') {
-      return `${ele.spaces}<View style={{flexDirection: 'column'}}${ele.single ? ' /' : ''}>`
+      return `${ele.spaces}<View style={{ flexDirection: 'column' }}${ele.single ? ' /' : ''}>`
     }
 
     const js = jsObjs[ele.id];
@@ -71,7 +71,7 @@ const generateComponentStrings = ({
         return `${ele.spaces}<Text${attrs}${styles}>${js.text}${ele.single ? '</Text>' : ''}`
       }
       if(js.childs.length == 1 && js.childs[0].type == 'Tspan') {
-        return `${ele.spaces}<Text${attrs}${styles}>${js.text}${js.childs[0].text}</Text>` 
+        return `${ele.spaces}<Text${attrs}${styles}>${js.text}${js.childs[0].text}</Text>`
       } else {
         const tspans = js.childs.map((t) => {
           if(t.type == 'Tspan') {
@@ -83,7 +83,7 @@ const generateComponentStrings = ({
           }
         }).join("\n")
 
-        return `${ele.spaces}<Text${attrs}${styles}>${js.text}\n${tspans}\n${ele.spaces}</Text>`            
+        return `${ele.spaces}<Text${attrs}${styles}>${js.text}\n${tspans}\n${ele.spaces}</Text>`
       }
 
     }
@@ -95,7 +95,7 @@ const generateComponentStrings = ({
       const imageStyle = attrObjs.style ? ` style={${attrObjs.style}}` : '';
       const jsname = js.id.replace("-", "").replace("+", "")
       if(imports.indexOf(`import ${jsname} from './${imagesDir}/${js.id}.png'`) < 0) {
-        imports.push(`import ${jsname} from './${imagesDir}/${js.id}.png'`)
+        imports.push(`import ${jsname} from './${imagesDir}/${js.id}.png';`)
       }
       return `${ele.spaces}<Image source={${jsname}}${imageStyle}${styles} />`
     }
@@ -104,7 +104,7 @@ const generateComponentStrings = ({
       const imageStyle = attrObjs.style ? ` style={${attrObjs.style}}` : '';
       const jsname = js.id.replace("-", "").replace("+", "")
       if(imports.indexOf(`import ${jsname} from './${imagesDir}/${js.id}.png'`) < 0) {
-        imports.push(`import ${jsname} from './${imagesDir}/${js.id}.png'`)
+        imports.push(`import ${jsname} from './${imagesDir}/${js.id}.png';`)
       }
       return `${ele.spaces}<Image source={${jsname}}${imageStyle}${styles} />`
     }
@@ -116,14 +116,14 @@ const generateComponentStrings = ({
       }
       const jsname = js.id.replace("-", "").replace("+", "")
       if(imports.indexOf(`import ${jsname} from './${imagesDir}/${js.id}.png'`) < 0) {
-        imports.push(`import ${jsname} from './${imagesDir}/${js.id}.png'`)
+        imports.push(`import ${jsname} from './${imagesDir}/${js.id}.png';`)
       }
       if(ele.single) {
-        return `${ele.spaces}<Image source={${jsname}}${imageStyle}${styles} />`            
+        return `${ele.spaces}<Image source={${jsname}}${imageStyle}${styles} />`
       } else {
         return `${ele.spaces}<Image source={${jsname}}${imageStyle}${styles}>`
       }
-    } 
+    }
 
     if(ele.end) {
       return(ele.spaces+'</View>');
@@ -131,7 +131,7 @@ const generateComponentStrings = ({
     return `${ele.spaces}<${js.type}${attrs}${styles}${ele.single ? ' /' : ''}>`
 
   }).join("\n");
-  
+
   return({
     componentStrings,
     imports
@@ -141,16 +141,18 @@ const generateComponentStrings = ({
 
 
 const generateComponent = ({
-  imports, 
-  rootStyle, 
-  mainBackgroundColor, 
-  componentStrings, 
+  componentName,
+  imports,
+  rootStyle,
+  mainBackgroundColor,
+  componentStrings,
   globalStyles
 }) => {
   const styleSheetString = generateStyleSheetString(globalStyles);
 
 // Note: the spacing (indentation) is important (even though it looks weird)
 // for everything in the ``.
+// TODO: filter these items, like remove TouchableOpacity?
   return (
 `import React, { Component } from 'react';
 
@@ -161,31 +163,36 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Image
-} from 'react-native';
+  Image,
+} from 'react-primitives';
 
 `+imports.join("\n")+`
 
-export default class Main extends Component {
+const styles = StyleSheet.create({
+${styleSheetString}
+});
+
+export default class ${componentName || 'Main'} extends Component {
 
   render() {
     return (
-      <ScrollView style={{
-        flex: 1, alignSelf: 'stretch', 
-        paddingTop: 20,
-        backgroundColor: '${rootStyle && rootStyle.backgroundColor ? rootStyle.backgroundColor : mainBackgroundColor ? mainBackgroundColor : '#ffffff'}'}}>
+      <ScrollView
+        style={{
+          flex: 1,
+          alignSelf: 'stretch',
+          paddingTop: 20,
+          backgroundColor: '${rootStyle && rootStyle.backgroundColor ? rootStyle.backgroundColor : mainBackgroundColor ? mainBackgroundColor : '#ffffff'}',
+        }}
+      >
 ` + componentStrings + `
       </ScrollView>
-    )
+    );
   }
 
 }
 
-const styles = StyleSheet.create({
-${styleSheetString}
-})
 `
-)  
+)
 }
 
 

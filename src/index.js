@@ -13,7 +13,7 @@ const { firstBackgroundColor, nativeAttrs } = require('./attributes');
 const { generateChildParent } = require('./components');
 const { prepData } = require('./input');
 const { removeStatusBarAndKeyboard } = require('./neural_net');
-const { 
+const {
   aboutZero,
   aboutEqual,
   allAboutEqual,
@@ -30,14 +30,16 @@ if(!INPUT_FILE || INPUT_FILE == '' || !INPUT_FILE.match(/\.svg$/)) {
 
 const pathArray = INPUT_FILE.split('/')
 const INPUT_FILENAME = pathArray[pathArray.length - 1]
-
+const INPUT_DIR = pathArray.slice(0, pathArray.length - 1).join('/')
 const INPUT_FILE_NO_SPACES = INPUT_FILENAME.replace(/\s/g, '_').split(".svg")[0]
 const OUTPUT_FILE = INPUT_FILE_NO_SPACES.split(".svg")[0] + ".js"
+const COMPONENT_NAME = INPUT_FILE_NO_SPACES.split(".svg")[0];
 
 const BASE_PATH = path.resolve();
-const OUTPUT_DIR = 'output';
+const OUTPUT_DIR = INPUT_DIR || 'output';
 const TEMP_DIR = 'temp';
-const IMAGES_DIR = INPUT_FILE_NO_SPACES.split(".svg")[0]+'_images';
+// const IMAGES_DIR = INPUT_FILE_NO_SPACES.split(".svg")[0]+'_images';
+const IMAGES_DIR = `images`;
 const TEMP_IMAGES_DIR = path.join(BASE_PATH, TEMP_DIR, IMAGES_DIR);
 const TEMP_COMPONENT_DIR = path.join(BASE_PATH, TEMP_DIR, 'components');
 
@@ -51,8 +53,8 @@ emptyAndCreateDir(TEMP_COMPONENT_DIR);
   fs.readFile(INPUT_FILE, 'utf-8', (err, data) => {
 
     const preppedData = prepData({
-      data, 
-      tempDir: TEMP_DIR, 
+      data,
+      tempDir: TEMP_DIR,
       inputFile: INPUT_FILENAME
     });
 
@@ -65,7 +67,7 @@ emptyAndCreateDir(TEMP_COMPONENT_DIR);
       const cleanedJS = await removeStatusBarAndKeyboard(preppedFile, TEMP_COMPONENT_DIR, processedJS);
 
       await getBrowserBoundingBoxes(cleanedJS, preppedFile);
-      
+
       const js = imagifyParents(cleanedJS)
       const { idDims, orderedIds } = await getBrowserBoundingBoxes(js, preppedFile);
 
@@ -82,7 +84,7 @@ emptyAndCreateDir(TEMP_COMPONENT_DIR);
           parentChildren[childParent[id]].push(id);
         }
       });
-      
+
       let jsObjs = {}
       const unrollJs = (js) => {
         jsObjs[js.id] = js;
@@ -117,18 +119,19 @@ emptyAndCreateDir(TEMP_COMPONENT_DIR);
       });
 
       const { imports, componentStrings } = generateComponentStrings({
-        flatEles, 
-        idDims, 
-        childParent, 
-        jsObjs, 
+        flatEles,
+        idDims,
+        childParent,
+        jsObjs,
         imagesDir: IMAGES_DIR
       });
 
       const generatedComponent = generateComponent({
-        imports, 
-        rootStyle: processedJS.rootStyle, 
-        mainBackgroundColor, 
-        componentStrings, 
+        componentName: COMPONENT_NAME,
+        imports,
+        rootStyle: processedJS.rootStyle,
+        mainBackgroundColor,
+        componentStrings,
         globalStyles
       })
       emptyAndCreateDir(OUTPUT_DIR + '/' + IMAGES_DIR)
@@ -144,6 +147,3 @@ emptyAndCreateDir(TEMP_COMPONENT_DIR);
   })
 
 })();
-
-
-
